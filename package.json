@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/eisen/ServerEngine/issues"
   },
-  "homepage": "https://github.com/eisen/ServerEngine#readme"
+  "homepage": "https://github.com/eisen/ServerEngine#readme",
+  "dependencies": {
+    "socket.io": "^4.0.1"
+  }
 }
