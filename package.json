@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "node main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -17,6 +18,7 @@
   },
   "homepage": "https://github.com/eisen/ServerEngine#readme",
   "dependencies": {
-    "socket.io": "^4.0.1"
+    "socket.io": "^4.0.1",
+    "uuid": "^8.3.2"
   }
 }
