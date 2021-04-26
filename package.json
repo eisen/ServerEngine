@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "node main.js",
+    "client": "node ClientDriver.js",
+    "admin": "node AdminDriver.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,6 +21,8 @@
   "homepage": "https://github.com/eisen/ServerEngine#readme",
   "dependencies": {
     "socket.io": "^4.0.1",
-    "uuid": "^8.3.2"
+    "socket.io-client": "^4.0.1",
+    "uuid": "^8.3.2",
+    "yargs": "^16.2.0"
   }
 }
