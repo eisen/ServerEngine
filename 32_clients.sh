@@ -1,0 +1,34 @@
+#!/bin/bash
+
+npm run client -- --name p01 > logs/p01.log&
+npm run client -- --name p02 > logs/p02.log&
+npm run client -- --name p03 > logs/p03.log&
+npm run client -- --name p04 > logs/p04.log&
+npm run client -- --name p05 > logs/p05.log&
+npm run client -- --name p06 > logs/p06.log&
+npm run client -- --name p07 > logs/p07.log&
+npm run client -- --name p08 > logs/p08.log&
+npm run client -- --name p09 > logs/p09.log&
+npm run client -- --name p10 > logs/p10.log&
+npm run client -- --name p11 > logs/p11.log&
+npm run client -- --name p12 > logs/p12.log&
+npm run client -- --name p13 > logs/p13.log&
+npm run client -- --name p14 > logs/p14.log&
+npm run client -- --name p15 > logs/p15.log&
+npm run client -- --name p16 > logs/p16.log&
+npm run client -- --name p17 > logs/p17.log&
+npm run client -- --name p18 > logs/p18.log&
+npm run client -- --name p19 > logs/p19.log&
+npm run client -- --name p20 > logs/p20.log&
+npm run client -- --name p21 > logs/p21.log&
+npm run client -- --name p22 > logs/p22.log&
+npm run client -- --name p23 > logs/p23.log&
+npm run client -- --name p24 > logs/p24.log&
+npm run client -- --name p25 > logs/p25.log&
+npm run client -- --name p26 > logs/p26.log&
+npm run client -- --name p27 > logs/p27.log&
+npm run client -- --name p28 > logs/p28.log&
+npm run client -- --name p29 > logs/p29.log&
+npm run client -- --name p30 > logs/p30.log&
+npm run client -- --name p31 > logs/p31.log&
+npm run client -- --name p32 > logs/p32.log&
