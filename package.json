@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "node main.js",
+    "dev": "node main.js --port 8080",
     "client": "node ClientDriver.js",
     "admin": "node AdminDriver.js",
     "test": "echo \"Error: no test specified\" && exit 1"
