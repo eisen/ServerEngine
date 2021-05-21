@@ -17,8 +17,6 @@ const timeout = 3 // seconds
 const BLACK = 1
 const WHITE = 2
 
-let pass_count = 0
-
 const START_BOARD = [
     0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
@@ -119,6 +117,7 @@ function start(type)
                     white: NIL, // Need to determine below
                     turn: BLACK,
                     board: START_BOARD,
+                    pass_count: 0,
                     ended: false
                 }
 
@@ -142,7 +141,7 @@ function start(type)
             }
         }
 
-        for( let game of games)
+        for( let game of games )
         {
             // Kickoff each game
             var data = {
@@ -172,7 +171,7 @@ function get_game_idx(game_id)
 
 function move(data)
 {
-    pass_count = 0
+    games[game_idx].pass_count = 0
     var game_id = data["game_id"]
     var out_board = ToArray(data["board"])
     var game_idx = get_game_idx(game_id)
@@ -185,8 +184,8 @@ function pass(data)
     var game_id = data["game_id"]
     var game_idx = get_game_idx(game_id)
 
-    ++pass_count
-    if(pass_count < 2)
+    games[game_idx].pass_count += 1
+    if(games[game_idx].pass_count < 2)
     {
         next_turn(games[game_idx])
     }
