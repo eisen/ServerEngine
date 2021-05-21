@@ -1,7 +1,8 @@
 const io = require('socket.io')();
 const { v4: uuidv4, NIL } = require('uuid');
 const yargs = require('yargs/yargs')
-const { hideBin } = require('yargs/helpers')
+const { hideBin } = require('yargs/helpers');
+const { exit } = require('yargs');
 
 const argv = yargs(hideBin(process.argv)).argv
 
@@ -64,7 +65,22 @@ function connection(socket)
 {
     sockets[socket.id] = socket
 
-    socket.on("set team", set_team)
+    socket.on("set team", (data) => {
+        var name = data["name"]
+        console.log("Team name:", name)
+        clients.push({
+            "id": socket.id,
+            "socket": sockets[socket.id],
+            name: name,
+            game_count: 0,
+            win_count: 0,
+            tie_count: 0
+        })
+
+        sockets[socket.id].on("move", move)
+        sockets[socket.id].on("pass", pass)
+    })
+
     socket.on("set admin", set_admin)
 }
 
@@ -274,25 +290,10 @@ function tournament_ended()
             }
             client.socket.emit("tournament ended", data)
         }
+        setTimeout(() => {
+            process.exit(0)
+        }, 1000) // Quit after 1 second
     }
-}
-
-function set_team(data)
-{
-    var socket_id = data["socket_id"]
-    var name = data["name"]
-    console.log("Team name:", name)
-    clients.push({
-        "id": socket_id,
-        "socket": sockets[socket_id],
-        name: name,
-        game_count: 0,
-        win_count: 0,
-        tie_count: 0
-    })
-
-    sockets[socket_id].on("move", move)
-    sockets[socket_id].on("pass", pass)
 }
 
 function set_admin(socket_id)
