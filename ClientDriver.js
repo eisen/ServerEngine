@@ -15,48 +15,99 @@ const name = argv.name
 
 const EMPTY = 0
 
-socket.on("set timeout", (in_timeout) => {
-    timeout = in_timeout
-    console.log("Timeout:", timeout)
+socket.on("set timeout", (data) => {
+    timeout = data["timeout"]
+    console.log("Timeout: ", timeout, "seconds")
 })
 
-socket.on("set opponent", (game_id, name) => {
+socket.on("set opponent", (data) => {
     var game = {
-        id: game_id,
-        opponent: name
+        id: data["game_id"],
+        opponent: data["name"]
     }
 
-    games[game_id] = game
+    games[game.id] = game
 })
 
-socket.on("make move", (game_id, in_board, turn) => {
-    out_board = in_board
-    for(var idx = 0; idx < 64; ++idx)
+function ToString(arrayBoard)
+{
+    var strBoard = ""
+    for(let cell of arrayBoard)
     {
-        if(in_board[idx] === EMPTY)
-        {
-            out_board[idx] = turn
-            socket.emit("move", game_id, out_board)
-            return
-        }
+        strBoard += cell.toString()
+    }
+    return strBoard
+}
+
+function ToArray(strBoard)
+{
+    let arrayBoard = [
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    ]
+
+    for (var idx = 0; idx < strBoard.length; idx++)
+    {
+        arrayBoard[idx] = parseInt(strBoard.charAt(idx))
     }
 
-    // Board is full
-    socket.emit("pass", game_id)
+    return arrayBoard
+}
+
+socket.on("make move", (data) => {
+    var game_id = data["game_id"]
+    var in_board = ToArray(data["board"])
+    var turn = data["turn"]
+    out_board = in_board
+    setTimeout( () => {
+        for(var idx = 0; idx < 64; ++idx)
+        {
+            if(in_board[idx] === EMPTY)
+            {
+                out_board[idx] = turn
+                var outData = {
+                    "game_id": game_id,
+                    "board": ToString(out_board)
+                }
+                socket.emit("move", outData)
+                return
+            }
+        }
+
+        // Board is full
+        socket.emit("pass", data)
+    }, timeout * 1000) // Timeout in seconds
 })
 
-socket.on("game ended", (game_id, black_count, white_count) => {
+socket.on("game ended", (data) => {
+    var game_id = data["game_id"]
+    var black_count = data["black_count"]
+    var white_count = data["white_count"]
     var game_name = name + " vs " + games[game_id].opponent
     console.log("Game ended:", game_name, black_count, white_count)
     delete games[game_id]
 })
 
-socket.on("tournament ended", (game_count, win_count, tie_count) => {
+socket.on("tournament ended", (data) => {
+    var name = data["name"]
+    var game_count = data["game_count"]
+    var win_count = data["win_count"]
+    var tie_count = data["tie_count"]
     console.log("Tournament results for:", name, game_count, win_count, tie_count)
 })
 
-socket.on('connect', function (sock) {
-    socket.emit("set team", socket.id, name)
+socket.on('connect', function () {
+    var data = {
+        socket_id: socket.id,
+        name: name
+    }
+    socket.emit("set team", data)
 })
 
 socket.on("disconnect", () => {

@@ -1,7 +1,8 @@
 const io = require('socket.io')();
 const { v4: uuidv4, NIL } = require('uuid');
 const yargs = require('yargs/yargs')
-const { hideBin } = require('yargs/helpers')
+const { hideBin } = require('yargs/helpers');
+const { exit } = require('yargs');
 
 const argv = yargs(hideBin(process.argv)).argv
 
@@ -29,11 +30,57 @@ const START_BOARD = [
 
 var admin = NIL
 
+function ToString(arrayBoard)
+{
+    var strBoard = ""
+    for(let cell of arrayBoard)
+    {
+        strBoard += cell.toString()
+    }
+    return strBoard
+}
+
+function ToArray(strBoard)
+{
+    let arrayBoard = [
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    ]
+
+    for (var idx = 0; idx < strBoard.length; idx++)
+    {
+        arrayBoard[idx] = parseInt(strBoard.charAt(idx))
+    }
+
+    return arrayBoard
+}
+
 function connection(socket)
 {
     sockets[socket.id] = socket
 
-    socket.on("set team", set_team)
+    socket.on("set team", (data) => {
+        var name = data["name"]
+        console.log("Team name:", name)
+        clients.push({
+            "id": socket.id,
+            "socket": sockets[socket.id],
+            name: name,
+            game_count: 0,
+            win_count: 0,
+            tie_count: 0
+        })
+
+        sockets[socket.id].on("move", move)
+        sockets[socket.id].on("pass", pass)
+    })
+
     socket.on("set admin", set_admin)
 }
 
@@ -42,13 +89,17 @@ function start(type)
     console.log("Start tournament of type:", type)
     if(tournament_running == true)
     {
-        console.log("Tournament running, can't styart a new one")
+        console.log("Tournament running, can't start a new one")
         return
+    }
+
+    var data = {
+        timeout: timeout
     }
 
     for(let client of clients)
     {
-        client.socket.emit("set timeout", timeout)
+        client.socket.emit("set timeout", data)
     }
 
     if(type === "round robin")
@@ -71,8 +122,13 @@ function start(type)
                 }
 
                 // Set Opponents
-                game.client1.socket.emit("set opponent", game.id, game.client2.name)
-                game.client2.socket.emit("set opponent", game.id, game.client1.name)
+                var opponent = {
+                    game_id: game.id,
+                    name: game.client2.name
+                }
+                game.client1.socket.emit("set opponent", opponent)
+                opponent.name = game.client1.name
+                game.client2.socket.emit("set opponent", opponent )
 
                 ++game.client1.game_count
                 ++game.client2.game_count
@@ -88,7 +144,12 @@ function start(type)
         for( let game of games)
         {
             // Kickoff each game
-            game.black.socket.emit("make move", game.id, game.board, game.turn)
+            var data = {
+                game_id: game.id,
+                board: ToString(game.board),
+                turn: game.turn
+            }
+            game.black.socket.emit("make move", data)
         }
     }
     else if(type === "double elimination")
@@ -108,15 +169,18 @@ function get_game_idx(game_id)
     return -1
 }
 
-function move(game_id, out_board)
+function move(data)
 {
+    var game_id = data["game_id"]
+    var out_board = ToArray(data["board"])
     var game_idx = get_game_idx(game_id)
     games[game_idx].board = out_board;
     next_turn(games[game_idx])
 }
 
-function pass(game_id)
+function pass(data)
 {
+    var game_id = data["game_id"]
     var game_idx = get_game_idx(game_id)
     next_turn(games[game_idx])
 }
@@ -125,15 +189,23 @@ function next_turn(game)
 {
     if(game_ended(game) === false)
     {
+        var data = {
+            game_id: game.id,
+            board: ToString(game.board),
+            turn: game.turn
+        }
+
         if(game.turn === BLACK)
         {
             game.turn = WHITE
-            game.white.socket.emit("make move", game.id, game.board, game.turn)
+            data.turn = game.turn
+            game.white.socket.emit("make move", data)
         }
         else
         {
             game.turn = BLACK
-            game.black.socket.emit("make move", game.id, game.board, game.turn)
+            data.turn = game.turn
+            game.black.socket.emit("make move", data)
         }
     }
     else
@@ -145,7 +217,6 @@ function next_turn(game)
 
 function game_ended(game)
 {
-
     var empty_cells = 64;
     for( let cell of game.board)
     {
@@ -163,22 +234,25 @@ function game_ended(game)
 
 function calculate_scores(game)
 {
-    var black_count = 0;
-    var white_count = 0;
+    var data = {
+        game_id: game.id,
+        black_count: 0,
+        white_count: 0
+    }
     for(let cell of game.board)
     {
-        if(cell === 1) ++black_count
-        else if(cell === 2) ++white_count
+        if(cell === 1) ++data.black_count
+        else if(cell === 2) ++data.white_count
     }
 
-    game.client1.socket.emit("game ended", game.id, black_count, white_count)
-    game.client2.socket.emit("game ended", game.id, black_count, white_count)
+    game.client1.socket.emit("game ended", data)
+    game.client2.socket.emit("game ended", data)
 
-    if(black_count > white_count)
+    if(data.black_count > data.white_count)
     {
         ++game.black.win_count
     }
-    else if(white_count > black_count)
+    else if(data.white_count > data.black_count)
     {
         ++game.white.win_count
     }
@@ -209,25 +283,18 @@ function tournament_ended()
         for( let client of clients)
         {
             console.log(client.name, client.game_count, client.win_count, client.tie_count)
-            client.socket.emit("tournament ended", client.game_count, client.win_count, client.tie_count)
+            var data = {
+                name: client.name,
+                game_count: client.game_count,
+                win_count: client.win_count,
+                tie_count: client.tie_count
+            }
+            client.socket.emit("tournament ended", data)
         }
+        setTimeout(() => {
+            process.exit(0)
+        }, 1000) // Quit after 1 second
     }
-}
-
-function set_team(socket_id, name)
-{
-    console.log("Team name:", name)
-    clients.push({
-        "id": socket_id,
-        "socket": sockets[socket_id],
-        name: name,
-        game_count: 0,
-        win_count: 0,
-        tie_count: 0
-    })
-
-    sockets[socket_id].on("move", move)
-    sockets[socket_id].on("pass", pass)
 }
 
 function set_admin(socket_id)
