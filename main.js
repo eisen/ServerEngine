@@ -171,10 +171,12 @@ function get_game_idx(game_id)
 
 function move(data)
 {
-    games[game_idx].pass_count = 0
     var game_id = data["game_id"]
-    var out_board = ToArray(data["board"])
     var game_idx = get_game_idx(game_id)
+
+    var out_board = ToArray(data["board"])
+
+    games[game_idx].pass_count = 0
     games[game_idx].board = out_board;
     next_turn(games[game_idx])
 }
