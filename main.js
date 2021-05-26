@@ -1,4 +1,12 @@
-const io = require('socket.io')();
+const io = require('socket.io')({
+    allowEIO3: true,
+    cors: {
+        credentials: true, // This is important.
+        origin: (origin, callback) => {
+            return callback(null, true)
+        }
+    }
+});
 const { v4: uuidv4, NIL } = require('uuid');
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers');
