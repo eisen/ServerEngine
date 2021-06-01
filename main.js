@@ -201,7 +201,8 @@ function pass(data)
     }
     else
     {
-        // Game is a tie, finish game
+        // Game is a tie or no valid moves left, finish game
+        games[game_idx].ended = true
         calculate_scores(games[game_idx])
     }
 }
