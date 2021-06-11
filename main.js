@@ -82,6 +82,7 @@ function connection(socket)
             name: name,
             game_count: 0,
             win_count: 0,
+            lost_count: 0,
             tie_count: 0
         })
 
@@ -136,7 +137,7 @@ function start(type)
                 }
                 game.client1.socket.emit("set opponent", opponent)
                 opponent.name = game.client1.name
-                game.client2.socket.emit("set opponent", opponent )
+                game.client2.socket.emit("set opponent", opponent)
 
                 ++game.client1.game_count
                 ++game.client2.game_count
@@ -273,10 +274,12 @@ function calculate_scores(game)
     if(data.black_count > data.white_count)
     {
         ++game.black.win_count
+        ++game.white.lost_count
     }
     else if(data.white_count > data.black_count)
     {
         ++game.white.win_count
+        ++game.black.lost_count
     }
     else
     {
@@ -313,9 +316,7 @@ function tournament_ended()
             }
             client.socket.emit("tournament ended", data)
         }
-        setTimeout(() => {
-            process.exit(0)
-        }, 1000) // Quit after 1 second
+        games = [] // Reset games
     }
 }
 
@@ -331,6 +332,59 @@ function set_admin(socket_id)
 io.on('connection', connection);
 
 io.on("start", start)
+
+
+// Viewers namespace
+const viewersNamespace = io.of("/viewers")
+
+viewersNamespace.on("connection", (socket) => {
+    var intervalId = -1
+    socket.on("game-status", (id) => {
+        let idx = get_game_idx(id)
+        socket.emit("game-board", ToString(games[idx].board))
+        if( intervalId < 0 ) clearInterval(intervalId)
+        intervalId = setInterval(() => {
+            if( typeof games[idx] != 'undefined')
+            {
+                socket.emit("game-board", ToString(games[idx].board))
+            }
+        }, timeout * 1000)
+    })
+});
+
+setInterval( () => {
+    let games_data = []
+    for( let game of games )
+    {
+        // Kickoff each game
+        var game_data = {
+            id: game.id,
+            black: game.black.name,
+            white: game.white.name,
+            board: ToString(game.board)
+        }
+        games_data.push(game_data)
+    }
+    viewersNamespace.emit("games-list", games_data)
+}, 1000)
+
+setInterval(() => {
+    let participants = []
+
+    clients.forEach(client => {
+        let participant = {
+            id: client.id,
+            name: client.name,
+            game_count: client.game_count,
+            win_count: client.win_count,
+            lost_count: client.lost_count,
+            tie_count: client.tie_count
+        }
+
+        participants.push(participant)
+    });
+    viewersNamespace.emit("participants-list", participants)
+}, 5000)
 
 console.log("Port: ", argv.port)
 io.listen(argv.port);
