@@ -305,10 +305,10 @@ function tournament_ended()
     if(games_ended === games.length) // Tournament complete
     {
         tournament_running = false
-        console.log("Results: name | game count | win count | tie count")
+        console.log("Results: name | game count: | win count | loss count | tie count ")
         for( let client of clients)
         {
-            console.log(client.name, client.game_count, client.win_count, client.tie_count)
+            console.log(client.name, client.game_count,":  " , client.win_count, client.game_count - client.win_count - client.tie_count, client.tie_count)
             var data = {
                 name: client.name,
                 game_count: client.game_count,
