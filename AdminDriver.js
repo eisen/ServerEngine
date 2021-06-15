@@ -1,6 +1,6 @@
 const io = require("socket.io-client")
 
-const URL = "http://localhost:8080";
+const URL = "https://engine.rtx-hackathon.xyz:8080";
 const socket = io(URL, { reconnection: true});
 
 socket.on("ready", () => {
