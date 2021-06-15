@@ -262,6 +262,7 @@ function calculate_scores(game)
         black_count: 0,
         white_count: 0
     }
+
     for(let cell of game.board)
     {
         if(cell === 1) ++data.black_count
@@ -316,7 +317,6 @@ function tournament_ended()
             }
             client.socket.emit("tournament ended", data)
         }
-        games = [] // Reset games
     }
 }
 
@@ -337,17 +337,30 @@ io.on("start", start)
 // Viewers namespace
 const viewersNamespace = io.of("/viewers")
 
+function sendGameStatus(socket, id)
+{
+    let idx = get_game_idx(id)
+    if( typeof games[idx] != 'undefined')
+    {
+        socket.emit("game-board", {
+            id: games[idx].id,
+            board: ToString(games[idx].board),
+            blackName: games[idx].black.name,
+            whiteName: games[idx].white.name
+        })
+    }
+}
+
 viewersNamespace.on("connection", (socket) => {
-    var intervalId = -1
+    let intervalId = -1
+
     socket.on("game-status", (id) => {
-        let idx = get_game_idx(id)
-        socket.emit("game-board", ToString(games[idx].board))
-        if( intervalId < 0 ) clearInterval(intervalId)
+        clearInterval(intervalId)
+
+        sendGameStatus(socket, id)
+
         intervalId = setInterval(() => {
-            if( typeof games[idx] != 'undefined')
-            {
-                socket.emit("game-board", ToString(games[idx].board))
-            }
+            sendGameStatus(socket, id)
         }, timeout * 1000)
     })
 });
