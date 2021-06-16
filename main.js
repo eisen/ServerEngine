@@ -1,7 +1,3 @@
-const fs = require('fs')
-const https = require('https')
-const express = require('express')
-const app = express()
 const { v4: uuidv4, NIL } = require('uuid');
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers');
@@ -9,15 +5,7 @@ const { exit } = require('yargs');
 
 const argv = yargs(hideBin(process.argv)).argv
 
-const options = {
-    key: fs.readFileSync('rtx-hackathon.xyz.key'),
-    cert: fs.readFileSync('rtx-hackathon.xyz.crt'),
-    port: argv.port
-}
-
-const server = https.createServer(options, app)
-
-const io = require('socket.io')(server, {
+const io = require('socket.io')({
     allowEIO3: true,
     cors: {
         credentials: true, // This is important.
@@ -413,4 +401,4 @@ setInterval(() => {
 }, 5000)
 
 console.log("Port: ", argv.port)
-io.listen(argv.port);
+io.listen(argv.port)
