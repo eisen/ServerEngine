@@ -89,6 +89,13 @@ function connection(socket)
 
         sockets[socket.id].on("move", move)
         sockets[socket.id].on("pass", pass)
+        sockets[socket.id].on("disconnecting", () => {
+            idx = clients.findIndex( (client) => {
+                return client.id === socket.id
+            })
+            console.log(clients[idx].name + " disconnected!")
+            clients[idx] = undefined
+        })
     })
 
     socket.on("set admin", set_admin)
@@ -330,7 +337,7 @@ function set_admin(socket_id)
     socket.emit("ready")
 }
 
-io.on('connection', connection);
+io.on('connection', connection)
 
 io.on("start", start)
 
@@ -386,16 +393,18 @@ setInterval(() => {
     let participants = []
 
     clients.forEach(client => {
-        let participant = {
-            id: client.id,
-            name: client.name,
-            game_count: client.game_count,
-            win_count: client.win_count,
-            lost_count: client.lost_count,
-            tie_count: client.tie_count
-        }
+        if(typeof client !== "undefined") {
+            let participant = {
+                id: client.id,
+                name: client.name,
+                game_count: client.game_count,
+                win_count: client.win_count,
+                lost_count: client.lost_count,
+                tie_count: client.tie_count
+            }
 
-        participants.push(participant)
+            participants.push(participant)
+        }
     });
     viewersNamespace.emit("participants-list", participants)
 }, 5000)
