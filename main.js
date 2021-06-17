@@ -94,7 +94,20 @@ function connection(socket)
                 return client.id === socket.id
             })
             console.log(clients[idx].name + " disconnected!")
-            clients[idx] = undefined
+
+            games.find((game) => {
+                if(game.black.id === socket.id || game.white.id === socket.id) {
+                    if(game.black.id === socket.id)
+                    {
+                        game.board = ToArray("2000200020002000200020002000200020002000200020002000200020002000")
+                    }
+                    else if(game.white.id === socket.id)
+                    {
+                        game.board = ToArray("1000100010001000100010001000100010001000100010001000100010001000")
+                    }
+                    game.ended = true
+                }
+            })
         })
     })
 
@@ -135,7 +148,8 @@ function start(type)
                     turn: BLACK,
                     board: START_BOARD,
                     pass_count: 0,
-                    ended: false
+                    ended: false,
+                    watchdog: -1
                 }
 
                 // Set Opponents
@@ -167,12 +181,20 @@ function start(type)
                 turn: game.turn
             }
             game.black.socket.emit("make move", data)
+
+            start_watchdog(game)
         }
     }
     else if(type === "double elimination")
     {
 
     }
+}
+
+function start_watchdog(game) {
+    game.watchdog = setTimeout(() => {
+        calculate_scores(game)
+    }, 10000)
 }
 
 function get_game_idx(game_id)
@@ -195,6 +217,7 @@ function move(data)
 
     games[game_idx].pass_count = 0
     games[game_idx].board = out_board;
+    clearTimeout(games[game_idx].watchdog)
     next_turn(games[game_idx])
 }
 
@@ -204,6 +227,7 @@ function pass(data)
     var game_idx = get_game_idx(game_id)
 
     games[game_idx].pass_count += 1
+    clearTimeout(games[game_idx].watchdog)
     if(games[game_idx].pass_count < 2)
     {
         next_turn(games[game_idx])
@@ -238,6 +262,7 @@ function next_turn(game)
             data.turn = game.turn
             game.black.socket.emit("make move", data)
         }
+        start_watchdog(game)
     }
     else
     {
