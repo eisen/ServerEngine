@@ -72,6 +72,10 @@ function ToArray(strBoard)
 
 function connection(socket)
 {
+    if(tournament_running) {
+        socket.disconnect(true)
+        return
+    }
     sockets[socket.id] = socket
 
     socket.on("set team", (data) => {
@@ -84,7 +88,9 @@ function connection(socket)
             game_count: 0,
             win_count: 0,
             lost_count: 0,
-            tie_count: 0
+            tie_count: 0,
+            busy: false,
+            disconnected: false
         })
 
         sockets[socket.id].on("move", move)
@@ -94,20 +100,26 @@ function connection(socket)
                 return client.id === socket.id
             })
             console.log(clients[idx].name + " disconnected!")
+            if(tournament_running)
+            {
+                clients[idx].disconnected = true
 
-            games.find((game) => {
-                if(game.black.id === socket.id || game.white.id === socket.id) {
-                    if(game.black.id === socket.id)
-                    {
-                        game.board = ToArray("2000200020002000200020002000200020002000200020002000200020002000")
+                games.find((game) => {
+                    if(game.black.id === socket.id || game.white.id === socket.id) {
+                        if(game.black.id === socket.id)
+                        {
+                            game.board = ToArray("2000200020002000200020002000200020002000200020002000200020002000")
+                        }
+                        else if(game.white.id === socket.id)
+                        {
+                            game.board = ToArray("1000100010001000100010001000100010001000100010001000100010001000")
+                        }
+                        game.ended = true
                     }
-                    else if(game.white.id === socket.id)
-                    {
-                        game.board = ToArray("1000100010001000100010001000100010001000100010001000100010001000")
-                    }
-                    game.ended = true
-                }
-            })
+                })
+            } else {
+                clients.splice(idx, 1);
+            }
         })
     })
 
@@ -137,8 +149,10 @@ function start(type)
 
         for(var idx = 0; idx < clients.length; ++idx )
         {
+            if(clients[idx].disconnected) continue
             for(var jdx = idx + 1; jdx < clients.length; ++jdx ) // Everybody plays everybody once
             {
+                if(clients[jdx].disconnected) continue
                 var game = {
                     id: uuidv4(),
                     client1: clients[idx],
@@ -149,6 +163,7 @@ function start(type)
                     board: START_BOARD,
                     pass_count: 0,
                     ended: false,
+                    pending: true,
                     watchdog: -1
                 }
 
@@ -172,18 +187,7 @@ function start(type)
             }
         }
 
-        for( let game of games )
-        {
-            // Kickoff each game
-            var data = {
-                game_id: game.id,
-                board: ToString(game.board),
-                turn: game.turn
-            }
-            game.black.socket.emit("make move", data)
-
-            start_watchdog(game)
-        }
+        launch_games()
     }
     else if(type === "double elimination")
     {
@@ -191,10 +195,37 @@ function start(type)
     }
 }
 
+function launch_games()
+{
+    for( let game of games )
+    {
+        if(game.ended === false)
+        {
+            if(game.black.busy === false && 
+                game.white.busy === false)
+            {
+                game.pending = false
+                game.black.busy = true
+                game.white.busy = true
+                // Kickoff each game
+                var data = {
+                    game_id: game.id,
+                    board: ToString(game.board),
+                    turn: game.turn
+                }
+                game.black.socket.emit("make move", data)
+
+                start_watchdog(game)
+            }
+        }
+    }
+}
+
 function start_watchdog(game) {
     game.watchdog = setTimeout(() => {
+        game.ended = true
         calculate_scores(game)
-    }, 10000)
+    }, 10 * 60 * 1000)
 }
 
 function get_game_idx(game_id)
@@ -321,6 +352,10 @@ function calculate_scores(game)
         ++game.white.tie_count
     }
 
+    game.black.busy = false
+    game.white.busy = false
+    launch_games()
+
     tournament_ended()
 }
 
@@ -341,7 +376,7 @@ function tournament_ended()
         console.log("Results: name | game count: | win count | loss count | tie count ")
         for( let client of clients)
         {
-            console.log(client.name, client.game_count,":  " , client.win_count, client.game_count - client.win_count - client.tie_count, client.tie_count)
+            console.log(client.name, client.game_count,":  " , client.win_count, client.lost_count, client.tie_count)
             var data = {
                 name: client.name,
                 game_count: client.game_count,
@@ -407,7 +442,10 @@ setInterval( () => {
             id: game.id,
             black: game.black.name,
             white: game.white.name,
-            board: ToString(game.board)
+            board: ToString(game.board),
+            ended: game.ended,
+            pending: game.pending,
+            disconnected: game.black.disconnected || game.white.disconnected
         }
         games_data.push(game_data)
     }
@@ -418,18 +456,17 @@ setInterval(() => {
     let participants = []
 
     clients.forEach(client => {
-        if(typeof client !== "undefined") {
             let participant = {
                 id: client.id,
                 name: client.name,
                 game_count: client.game_count,
                 win_count: client.win_count,
                 lost_count: client.lost_count,
-                tie_count: client.tie_count
+                tie_count: client.tie_count,
+                disconnected: client.disconnected
             }
 
             participants.push(participant)
-        }
     });
     viewersNamespace.emit("participants-list", participants)
 }, 5000)
