@@ -91,7 +91,7 @@ function connection(socket) {
     let ip = connection.address.split(":")[3];
     console.log('Connection from:', ip);
 
-    if (tournament_running ) { //|| validIPs.includes(ip) === false) {
+    if (tournament_running || validIPs.includes(ip) === false) {
         socket.disconnect(true)
         return
     }
