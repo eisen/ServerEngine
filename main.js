@@ -37,7 +37,26 @@ const START_BOARD = [
     0, 0, 0, 0, 0, 0, 0, 0
 ]
 
+const validIPs = [
+"18.144.50.111",
+"54.177.207.33",
+"13.56.12.96",
+"54.67.47.117",
+"52.53.130.123",
+"54.215.180.67",
+"18.144.56.8",
+"54.219.97.244",
+"54.67.92.131",
+"54.183.27.25",
+"18.144.15.199",
+"3.101.80.163",
+"54.153.106.236",
+"52.53.230.44",
+]
+
 var admin = NIL
+
+let connected = 0
 
 function ToString(arrayBoard)
 {
@@ -72,14 +91,24 @@ function ToArray(strBoard)
 
 function connection(socket)
 {
-    if(tournament_running) {
+    let connection = socket.request.connection._peername
+    let ip = connection.address.split(":")[3];
+    console.log('connection :', ip);
+    
+    if(tournament_running || validIPs.includes(ip) === false) {
         socket.disconnect(true)
         return
     }
+    connected++
     sockets[socket.id] = socket
 
     socket.on("set team", (data) => {
         var name = data["name"]
+        if(name == "")
+        {
+            socket.disconnect(true)
+            return
+        }
         console.log("Team name:", name)
         clients.push({
             "id": socket.id,
