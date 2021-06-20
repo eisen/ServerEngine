@@ -95,7 +95,7 @@ function connection(socket) {
         socket.disconnect(true)
         return
     }
-    connected++
+    
     sockets[socket.id] = socket
 
     socket.on("set team", (data) => {
@@ -222,8 +222,15 @@ function start(data) {
                 return client.name === seeds[idx].player2
             })
 
+            if ( typeof player1 === "undefined") {
+                // This is a by or team foerfeit
+                player2.win_count++
+                continue
+            }
+
             if ( typeof player2 === "undefined") {
-                // This is a by
+                // This is a by or team foerfeit
+                player1.win_count++
                 continue
             }
 
@@ -427,6 +434,7 @@ function tournament_ended() {
             }
             client.socket.emit("tournament ended", data)
         }
+        console.log("Viewers: connected")
     }
 }
 
@@ -460,6 +468,7 @@ function sendGameStatus(socket, id) {
 
 viewersNamespace.on("connection", (socket) => {
     let intervalId = -1
+    connected++
 
     socket.on("game-status", (id) => {
         clearInterval(intervalId)
